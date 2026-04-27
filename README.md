@@ -2,37 +2,30 @@
 
 A minimal marimo/anywidget plugin for rendering triangle meshes with three.js.
 
+This viewer uses **one transport only**: a single binary scene payload (MMV2)
+served through a browser URL.
+
 ## API shape
 
-The core abstraction is a **scene payload**:
+The core abstraction is a list of mesh inputs converted to a single binary payload:
 
 ```python
-{
-  "version": 1,
-  "meshes": [
-    {
-      "id": "mesh-1",
-      "name": "terrain",
-      "vertices": ...,  # Nx3 float32
-      "faces": ...,     # Mx3 uint32
-      "material": {
-        "color": "#9aa0a6",
-        "opacity": 1.0,
-        "metalness": 0.1,
-        "roughness": 0.9,
-        "wireframe": False,
-        "double_sided": False,
-      }
+[
+  {
+    "id": "mesh-1",
+    "name": "terrain",
+    "vertices": ...,  # (N, 3) float32/float64 array-like OR list rows
+    "faces": ...,     # (M, 3) uint16/uint32 array-like OR list rows
+    "material": {
+      "color": "#9aa0a6",
+      "opacity": 1.0,
+      "metalness": 0.1,
+      "roughness": 0.9,
+      "wireframe": False,
+      "double_sided": False,
     }
-  ],
-  "camera": {
-    "fit": "all"
-  },
-  "options": {
-    "background": "#ffffff",
-    "show_grid": False,
   }
-}
+]
 ```
 
 This avoids exposing three.js directly while remaining flexible for multiple meshes/materials.
@@ -41,7 +34,9 @@ This avoids exposing three.js directly while remaining flexible for multiple mes
 
 - Not tied to one mesh or one fixed renderer behavior.
 - Not a reimplementation of the full three.js API.
-- Supports list/iterable and numpy-like inputs (numpy is optional, not required by the package).
+- Uses a single binary payload for the whole scene.
+- Supports list/iterable and numpy-like array inputs (numpy is optional).
+- Does not run geometry optimization or simplification.
 - Leaves room for future features like per-mesh transforms, lights, labels, and picking.
 
 ## Quick start
@@ -57,10 +52,10 @@ vertices = [
 faces = [[0, 1, 2]]
 
 viewer = MeshViewer(height=500)
-viewer.scene = {
-    "version": 1,
-    "meshes": [mesh_payload(vertices, faces, name="triangle")],
-}
+viewer.set_scene(
+  meshes=[mesh_payload(vertices, faces, name="triangle")],
+  compression="none",  # or "gzip"
+)
 viewer
 ```
 
