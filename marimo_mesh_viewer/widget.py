@@ -1,32 +1,59 @@
 from __future__ import annotations
 
+from array import array
 import base64
 from pathlib import Path
 from textwrap import dedent
-from typing import Any
+from typing import Any, Iterable, Sequence, SupportsIndex, TypedDict
 
 import anywidget
-import numpy as np
 from traitlets import Dict, Int, Unicode
 
 
-def _load_anywidget_esm() -> str:
-        """Wrap the webpack window bundle into an AnyWidget ESM module."""
-        bundle_path = Path(__file__).parent / "static" / "index.js"
-        if not bundle_path.exists():
-                return dedent(
-                        """
-                        export default {
-                            render({ el }) {
-                                el.textContent = "marimo-mesh-viewer frontend bundle not found";
-                            },
-                        };
-                        """
-                )
+Number = int | float
 
-        bundle = bundle_path.read_text(encoding="utf-8")
-        return bundle + dedent(
-                """
+
+class WireArray(TypedDict):
+    codec: str
+    dtype: str
+    shape: list[int]
+    buffer: str
+
+
+class MaterialPayload(TypedDict, total=False):
+    color: str
+    opacity: float
+    metalness: float
+    roughness: float
+    wireframe: bool
+    double_sided: bool
+
+
+class MeshPayload(TypedDict, total=False):
+    id: str | None
+    name: str | None
+    vertices: WireArray
+    faces: WireArray
+    material: MaterialPayload
+
+
+def _load_anywidget_esm() -> str:
+    """Wrap the webpack window bundle into an AnyWidget ESM module."""
+    bundle_path = Path(__file__).parent / "static" / "index.js"
+    if not bundle_path.exists():
+        return dedent(
+            """
+            export default {
+                render({ el }) {
+                    el.textContent = "marimo-mesh-viewer frontend bundle not found";
+                },
+            };
+            """
+        )
+
+    bundle = bundle_path.read_text(encoding="utf-8")
+    return bundle + dedent(
+        """
 
                 function ensureBundle() {
                     if (!globalThis.MarimoMeshViewer) {
@@ -77,62 +104,72 @@ def _load_anywidget_esm() -> str:
                         };
                     },
                 };
-                """
-        )
+        """
+    )
 
 
-def _ensure_vertices(vertices: Any) -> np.ndarray:
-    arr = np.asarray(vertices, dtype=np.float32)
-    if arr.ndim != 2 or arr.shape[1] != 3:
-        raise ValueError("vertices must have shape (N, 3)")
-    if not arr.flags["C_CONTIGUOUS"]:
-        arr = np.ascontiguousarray(arr)
-    return arr
+def _rows_of_three(data: Iterable[Sequence[Any]], *, name: str) -> Iterable[tuple[Any, Any, Any]]:
+    for row_index, row in enumerate(data):
+        values = tuple(row)
+        if len(values) != 3:
+            raise ValueError(f"{name} row {row_index} must have exactly 3 values")
+        yield values[0], values[1], values[2]
 
 
-def _ensure_faces(faces: Any) -> np.ndarray:
-    arr = np.asarray(faces)
-    if arr.ndim != 2 or arr.shape[1] != 3:
-        raise ValueError("faces must have shape (M, 3)")
-    if arr.dtype not in (np.uint32, np.int32, np.int64, np.uint64):
-        arr = arr.astype(np.uint32)
-    else:
-        arr = arr.astype(np.uint32, copy=False)
-    if not arr.flags["C_CONTIGUOUS"]:
-        arr = np.ascontiguousarray(arr)
-    return arr
+def _encode_vertices(vertices: Iterable[Sequence[Number]]) -> WireArray:
+    packed = array("f")
+    row_count = 0
+    for x, y, z in _rows_of_three(vertices, name="vertices"):
+        packed.extend((float(x), float(y), float(z)))
+        row_count += 1
 
-
-def _ndarray_to_wire(arr: np.ndarray) -> dict[str, Any]:
     return {
         "codec": "b64",
-        "dtype": str(arr.dtype),
-        "shape": list(arr.shape),
-        "buffer": base64.b64encode(arr.ravel().tobytes()).decode("ascii"),
+        "dtype": "float32",
+        "shape": [row_count, 3],
+        "buffer": base64.b64encode(packed.tobytes()).decode("ascii"),
+    }
+
+
+def _encode_faces(faces: Iterable[Sequence[SupportsIndex]]) -> WireArray:
+    packed = array("I")
+    row_count = 0
+    max_uint32 = (1 << 32) - 1
+
+    for i0, i1, i2 in _rows_of_three(faces, name="faces"):
+        tri = (int(i0), int(i1), int(i2))
+        for index in tri:
+            if index < 0 or index > max_uint32:
+                raise ValueError("faces indices must be within uint32 range")
+        packed.extend(tri)
+        row_count += 1
+
+    return {
+        "codec": "b64",
+        "dtype": "uint32",
+        "shape": [row_count, 3],
+        "buffer": base64.b64encode(packed.tobytes()).decode("ascii"),
     }
 
 
 def mesh_payload(
-    vertices: Any,
-    faces: Any,
+    vertices: Iterable[Sequence[Number]],
+    faces: Iterable[Sequence[SupportsIndex]],
     *,
     name: str | None = None,
     mesh_id: str | None = None,
-    material: dict[str, Any] | None = None,
-) -> dict[str, Any]:
+    material: MaterialPayload | None = None,
+) -> MeshPayload:
     """Build one mesh payload suitable for `MeshViewer.scene`.
 
     This API intentionally stays at a medium abstraction level:
     geometry + material metadata, without mirroring full three.js objects.
     """
-    v = _ensure_vertices(vertices)
-    f = _ensure_faces(faces)
-
-    payload: dict[str, Any] = {
+    payload: MeshPayload = {
         "id": mesh_id,
         "name": name,
-        "vertices": _ndarray_to_wire(v),
-        "faces": _ndarray_to_wire(f),
+        "vertices": _encode_vertices(vertices),
+        "faces": _encode_faces(faces),
         "material": {
             "color": "#9aa0a6",
             "opacity": 1.0,
@@ -144,21 +181,6 @@ def mesh_payload(
         },
     }
     return payload
-
-
-def trimesh_payload(
-    mesh: Any,
-    *,
-    name: str | None = None,
-    mesh_id: str | None = None,
-    material: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    """Convert a `trimesh.Trimesh` into a `mesh_payload` dict."""
-    vertices = getattr(mesh, "vertices", None)
-    faces = getattr(mesh, "faces", None)
-    if vertices is None or faces is None:
-        raise TypeError("mesh must provide .vertices and .faces")
-    return mesh_payload(vertices, faces, name=name, mesh_id=mesh_id, material=material)
 
 
 class MeshViewer(anywidget.AnyWidget):
@@ -182,14 +204,14 @@ class MeshViewer(anywidget.AnyWidget):
         if scene is not None:
             self.scene = scene
 
-    def set_meshes(self, meshes: list[dict[str, Any]]) -> None:
+    def set_meshes(self, meshes: list[MeshPayload]) -> None:
         self.scene = {
             **(self.scene or {}),
             "version": 1,
             "meshes": meshes,
         }
 
-    def add_mesh(self, mesh: dict[str, Any]) -> None:
+    def add_mesh(self, mesh: MeshPayload) -> None:
         scene = dict(self.scene or {})
         meshes = list(scene.get("meshes", []))
         meshes.append(mesh)

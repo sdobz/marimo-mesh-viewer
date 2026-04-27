@@ -41,21 +41,20 @@ This avoids exposing three.js directly while remaining flexible for multiple mes
 
 - Not tied to one mesh or one fixed renderer behavior.
 - Not a reimplementation of the full three.js API.
-- Supports high-volume data transfer using base64-encoded typed arrays.
+- Supports list/iterable and numpy-like inputs (numpy is optional, not required by the package).
 - Leaves room for future features like per-mesh transforms, lights, labels, and picking.
 
 ## Quick start
 
 ```python
-import numpy as np
 from marimo_mesh_viewer import MeshViewer, mesh_payload
 
-vertices = np.array([
-    [0.0, 0.0, 0.0],
-    [1.0, 0.0, 0.0],
-    [0.0, 1.0, 0.0],
-], dtype=np.float32)
-faces = np.array([[0, 1, 2]], dtype=np.uint32)
+vertices = [
+  [0.0, 0.0, 0.0],
+  [1.0, 0.0, 0.0],
+  [0.0, 1.0, 0.0],
+]
+faces = [[0, 1, 2]]
 
 viewer = MeshViewer(height=500)
 viewer.scene = {
@@ -65,16 +64,7 @@ viewer.scene = {
 viewer
 ```
 
-Or from trimesh:
-
-```python
-import trimesh
-from marimo_mesh_viewer import MeshViewer, trimesh_payload
-
-mesh = trimesh.creation.icosphere(subdivisions=3)
-viewer = MeshViewer(scene={"version": 1, "meshes": [trimesh_payload(mesh)]})
-viewer
-```
+If you pass numpy arrays, they are accepted as generic iterables of rows.
 
 ## Build frontend bundle
 

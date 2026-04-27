@@ -7,7 +7,7 @@ name = "marimo_mesh_viewer"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.9"
-dependencies = ["anywidget", "traitlets", "numpy"]
+dependencies = ["anywidget", "traitlets"]
 dynamic = ["version", "description", "authors", "urls", "keywords"]
 
 [tool.hatch.version]

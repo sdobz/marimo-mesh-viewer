@@ -9,13 +9,9 @@ def _():
     import marimo as mo
     import numpy as np
 
-    from marimo_mesh_viewer import MeshViewer, mesh_payload, trimesh_payload
+    from marimo_mesh_viewer import MeshViewer, mesh_payload
 
-    try:
-        import trimesh
-    except Exception:
-        trimesh = None
-    return MeshViewer, mesh_payload, mo, np, trimesh, trimesh_payload
+    return MeshViewer, mesh_payload, mo, np
 
 
 @app.cell
@@ -123,59 +119,44 @@ def _(MeshViewer, mesh_payload, np):
 
 
 @app.cell
-def _(mo, trimesh, trimesh_payload):
-    if trimesh is None:
-        mo.md(
-            """
-            ## trimesh demo skipped
+def _(MeshViewer, mesh_payload, mo):
+    mo.md("## List-based payload (no numpy required)")
 
-            `trimesh` is not installed in this environment.
-            Install it to run the conversion helper demo.
-            """
-        )
-        scene_trimesh = None
-    else:
-        sphere = trimesh.creation.icosphere(subdivisions=3, radius=0.45)
-        sphere.apply_translation((1.0, 0.0, 0.5))
+    vertices = [
+        [-1.0, -1.0, 0.0],
+        [1.0, -1.0, 0.0],
+        [1.0, 1.0, 0.0],
+        [-1.0, 1.0, 0.0],
+        [0.0, 0.0, 1.0],
+    ]
+    faces = [
+        [0, 1, 4],
+        [1, 2, 4],
+        [2, 3, 4],
+        [3, 0, 4],
+        [0, 2, 1],
+        [0, 3, 2],
+    ]
 
-        box = trimesh.creation.box(extents=(1.2, 0.8, 0.2))
-        box.apply_translation((0.4, 0.0, -0.2))
-
-        scene_trimesh = {
+    viewer_lists = MeshViewer(
+        scene={
             "version": 1,
             "meshes": [
-                trimesh_payload(
-                    sphere,
-                    name="sphere",
+                mesh_payload(
+                    vertices,
+                    faces,
+                    name="list-pyramid",
                     material={
-                        "color": "#48a868",
-                        "metalness": 0.15,
-                        "roughness": 0.65,
-                    },
-                ),
-                trimesh_payload(
-                    box,
-                    name="box",
-                    material={
-                        "color": "#9aa0a6",
-                        "opacity": 0.85,
+                        "color": "#4f83cc",
                         "metalness": 0.05,
-                        "roughness": 0.9,
+                        "roughness": 0.85,
                     },
-                ),
+                )
             ],
-        }
-    return (scene_trimesh,)
-
-
-@app.cell
-def _(MeshViewer, scene_trimesh):
-    if scene_trimesh is None:
-        viewer_trimesh = None
-    else:
-        viewer_trimesh = MeshViewer(scene=scene_trimesh, height=440)
-
-    viewer_trimesh
+        },
+        height=380,
+    )
+    viewer_lists
     return
 
 
