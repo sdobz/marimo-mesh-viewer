@@ -1,0 +1,42 @@
+{
+  "name": "marimo-mesh-viewer",
+  "version": "0.1.0",
+  "description": "A minimal mesh viewer widget for marimo using three.js",
+  "license": "MIT",
+  "author": {
+    "name": "wax-cam"
+  },
+  "main": "lib/index.js",
+  "style": "style/index.css",
+  "repository": {
+    "type": "git",
+    "url": "https://example.invalid/wax-cam/marimo-mesh-viewer"
+  },
+  "keywords": [
+    "marimo",
+    "mesh",
+    "threejs",
+    "anywidget"
+  ],
+  "files": [
+    "lib/**/*.js",
+    "style/*.css"
+  ],
+  "scripts": {
+    "clean": "rimraf ../marimo_mesh_viewer/static/*",
+    "build": "webpack --mode=development",
+    "build:prod": "webpack --mode=production",
+    "watch": "webpack --watch --mode=development"
+  },
+  "dependencies": {
+    "three": "^0.177.0"
+  },
+  "devDependencies": {
+    "css-loader": "^7.1.2",
+    "mini-css-extract-plugin": "^2.9.4",
+    "rimraf": "^6.0.1",
+    "terser-webpack-plugin": "^5.3.14",
+    "webpack": "^5.101.3",
+    "webpack-cli": "^6.0.1"
+  }
+}

@@ -1,0 +1,21 @@
+.mmv-root {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+  border: 1px solid #d7d7d7;
+  border-radius: 10px;
+  overflow: hidden;
+  background: radial-gradient(circle at 20% 20%, #f7f7f7 0%, #ececec 80%);
+}
+
+.mmv-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.mmv-empty {
+  color: #666;
+  font: 500 14px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+  padding: 14px;
+}

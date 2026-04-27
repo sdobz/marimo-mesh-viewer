@@ -1,0 +1,13 @@
+graft js
+prune **/node_modules
+
+include README.md
+include LICENSE
+include pyproject.toml
+
+global-exclude *~
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude .git
+global-exclude .ipynb_checkpoints
+global-exclude *.map

@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling>=1.5.0", "hatch-nodejs-version"]
+build-backend = "hatchling.build"
+
+[project]
+name = "marimo_mesh_viewer"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = ["anywidget", "traitlets", "numpy"]
+dynamic = ["version", "description", "authors", "urls", "keywords"]
+
+[tool.hatch.version]
+source = "nodejs"
+path = "js/package.json"
+
+[tool.hatch.metadata.hooks.nodejs]
+fields = ["description", "authors", "urls"]
+path = "js/package.json"
+
+[tool.hatch.build.targets.sdist]
+exclude = [".[a-z]*", "js/node_modules", "examples"]
+
+[tool.hatch.build.hooks.version]
+path = "marimo_mesh_viewer/_version.py"
