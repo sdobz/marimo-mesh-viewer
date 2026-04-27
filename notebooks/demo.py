@@ -200,8 +200,8 @@ def _(MeshViewer, mesh_payload, np):
             i1 = i0 + 1
             i2 = next_base + col
             i3 = i2 + 1
-            faces_large[k] = (i0, i2, i1)
-            faces_large[k + 1] = (i1, i2, i3)
+            faces_large[k] = (i0, i1, i2)
+            faces_large[k + 1] = (i1, i3, i2)
             k += 2
 
     viewer_large = MeshViewer(height=460)

@@ -156,6 +156,7 @@ class MeshViewerView {
     this.scene.background = new THREE.Color("#f5f5f5");
 
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.01, 1e7);
+    this.camera.up.set(0, 0, 1);
     this.camera.position.set(1.8, 1.4, 1.8);
 
     const ambient = new THREE.AmbientLight(0xffffff, 0.8);
@@ -182,6 +183,7 @@ class MeshViewerView {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
+    this.controls.screenSpacePanning = false;
 
     this.resizeObserver = new ResizeObserver(() => this._resize());
     this.resizeObserver.observe(this.root);
@@ -396,7 +398,7 @@ class MeshViewerView {
 
     this.camera.position
       .copy(center)
-      .add(new THREE.Vector3(distance, distance, distance));
+      .add(new THREE.Vector3(distance, -distance, distance));
     this.controls.target.copy(center);
     this.controls.update();
   }
